@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read Aloud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f1e7; --paper:#fbf8f2; --ink:#2a2420; --muted:#7a6f64; --line:#e3dacb;
+  --accent:#8a3b2e; --accent-ink:#fff; --hl:#f3d9a4; --hl-ink:#2a2420; --chip:#efe7d8;
+  --fs:20px;
+}
+[data-theme="light"]{--bg:#f4f4f2;--paper:#ffffff;--ink:#1d1d1f;--muted:#6b6b70;--line:#e2e2e0;--accent:#3b4a8a;--hl:#dbe4ff;--chip:#eeeeec}
+[data-theme="dark"]{--bg:#161412;--paper:#1f1c19;--ink:#ece4d8;--muted:#a39886;--line:#35302a;--accent:#e08a6e;--accent-ink:#1a1310;--hl:#5a4320;--hl-ink:#fff4e0;--chip:#2b2723}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;font-size:15px;display:flex;flex-direction:column}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+header{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:5}
+header h1{font-family:Literata,serif;font-size:19px;margin:0;font-weight:600;letter-spacing:.2px;cursor:pointer}
+header .sp{flex:1}
+.hbtn{padding:7px 11px;border-radius:999px;background:var(--chip);font-size:13px;font-weight:500;white-space:nowrap}
+.hbtn .count{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:0 6px;margin-left:4px;font-size:11px}
+main{flex:1;overflow:auto}
+/* Home */
+#home{max-width:720px;margin:0 auto;padding:28px 18px 60px}
+.drop{display:block;border:2px dashed var(--line);border-radius:18px;padding:40px 20px;text-align:center;background:var(--paper);cursor:pointer;transition:.15s}
+.drop.over,.drop:hover{border-color:var(--accent)}
+.drop strong{display:block;font-family:Literata,serif;font-size:22px;margin-bottom:6px}
+.drop span{color:var(--muted)}
+#file{display:none}
+#status{margin:14px 0;color:var(--muted);min-height:20px}
+#status.err{color:#c0392b}
+h2.sec{font-family:Literata,serif;font-weight:600;font-size:17px;margin:30px 0 10px}
+.book{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:8px}
+.book .info{flex:1;min-width:0}
+.book .t{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .m{color:var(--muted);font-size:13px;margin-top:2px}
+.bar{height:4px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.btn{padding:8px 14px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:13px}
+.btn.ghost{background:var(--chip);color:var(--ink)}
+.x{color:var(--muted);font-size:18px;padding:4px 8px}
+.note{color:var(--muted);font-size:13px;line-height:1.5}
+/* Reader */
+#reader{display:none;max-width:760px;margin:0 auto;padding:12px 18px 40px}
+.rhead{display:flex;flex-wrap:wrap;gap:8px;align-items:center;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:3}
+.rhead .bt{font-family:Literata,serif;font-weight:600;font-size:16px;flex:1 1 200px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+select{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:7px 9px;max-width:100%}
+#secSel{max-width:260px}
+#text{font-family:Literata,Georgia,serif;font-size:var(--fs);line-height:1.75;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:22px 26px;margin-top:6px}
+#text p{margin:0 0 1em}
+#text h3{font-size:1.15em;margin:0 0 1em;font-weight:600}
+.s{border-radius:4px;cursor:pointer;transition:background .15s}
+.s:hover{background:color-mix(in srgb,var(--hl) 45%,transparent)}
+.s.on{background:var(--hl);color:var(--hl-ink);box-shadow:0 0 0 3px var(--hl)}
+.s.bm{border-bottom:2px dotted var(--accent)}
+.secnav{display:flex;justify-content:space-between;margin-top:14px}
+/* Player */
+#player{display:none;border-top:1px solid var(--line);background:var(--paper);padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
+.prog{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);max-width:760px;margin:0 auto}
+.prog input{flex:1;accent-color:var(--accent)}
+.ctrls{display:flex;align-items:center;justify-content:center;gap:4px;margin:6px auto 0;max-width:760px;flex-wrap:wrap}
+.cb{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:18px}
+.cb:hover{background:var(--chip)}
+.cb svg{width:22px;height:22px;fill:currentColor}
+#playBtn{width:56px;height:56px;background:var(--accent);color:var(--accent-ink)}
+#playBtn svg{width:26px;height:26px}
+.cb small{font-size:9px;display:block;line-height:1;margin-top:-2px}
+.opts{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:6px auto 0;max-width:760px;font-size:13px;color:var(--muted)}
+.opts input[type=range]{width:110px;accent-color:var(--accent)}
+#voiceSel{max-width:220px;font-size:13px}
+/* Selection bar */
+#selbar{position:fixed;left:50%;transform:translateX(-50%);bottom:150px;display:none;z-index:20}
+#selbar button{background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+/* Panel */
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.3);display:none;z-index:30}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(420px,100%);background:var(--paper);z-index:31;transform:translateX(100%);visibility:hidden;transition:transform .2s,visibility .2s;display:flex;flex-direction:column;border-left:1px solid var(--line)}
+#panel.open{transform:none;visibility:visible}
+.ptabs{display:flex;gap:6px;padding:12px;border-bottom:1px solid var(--line);align-items:center}
+.ptab{padding:7px 12px;border-radius:999px;font-weight:500;font-size:13px}
+.ptab.on{background:var(--accent);color:var(--accent-ink)}
+.pbody{flex:1;overflow:auto;padding:12px}
+.pactions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pactions a{text-decoration:none}
+.ex{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--bg)}
+.ex q{display:block;font-family:Literata,serif;line-height:1.55;quotes:"“" "”"}
+.ex .src{color:var(--muted);font-size:12px;margin-top:6px;display:flex;gap:6px;align-items:center}
+.ex .src span{flex:1}
+.ex .src button{color:var(--muted);font-size:12px;padding:2px 6px}
+.ex.clickable{cursor:pointer}
+.empty{color:var(--muted);text-align:center;padding:30px 10px;line-height:1.5}
+.setrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.seg{display:flex;gap:4px}
+.seg button{padding:6px 10px;border-radius:8px;background:var(--chip);font-size:13px}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+#toast{position:fixed;left:50%;top:64px;transform:translateX(-50%) translateY(-20px);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:12px;z-index:50;transition:.2s;font-size:14px;opacity:0;pointer-events:none}
+#toast.on{transform:translateX(-50%);opacity:1}
+.foot{color:var(--muted);font-size:12px;text-align:center;margin-top:40px}
+@media (max-width:560px){
+  #text{padding:16px 16px;border-radius:12px}
+  .cb{width:40px;height:40px}
+  header{gap:5px;padding:9px 10px}
+  header h1{font-size:16px}
+  .hbtn{padding:6px 8px;font-size:12px}
+}
+</style>
+</head>
+<body data-theme="sepia">
+<header>
+  <h1 id="homeLink" title="Library">Read Aloud</h1>
+  <div class="sp"></div>
+  <button class="hbtn" id="openBm" style="display:none">Bookmarks</button>
+  <button class="hbtn" id="openEx">Excerpts<span class="count" id="exCount">0</span></button>
+  <button class="hbtn" id="openSet" aria-label="Settings">Aa</button>
+</header>
+
+<main id="main">
+  <section id="home">
+    <label class="drop" id="drop" for="file">
+      <strong>Upload a PDF or EPUB</strong>
+      <span>Tap to choose a file, or drop it here. It stays on your device.</span>
+    </label>
+    <input type="file" id="file" accept=".pdf,.epub,application/pdf,application/epub+zip">
+    <div id="status"></div>
+    <div id="recentWrap"></div>
+    <p class="note" style="margin-top:28px">Your place is saved as you listen. Books you open are kept in this browser, so you can pick up where you left off without uploading again. On a phone, keep the screen on while listening, because most phones stop browser speech when the screen locks.</p>
+    <div class="foot">@ArtemisiaMathieu</div>
+  </section>
+
+  <section id="reader">
+    <div class="rhead">
+      <div class="bt" id="bookTitle"></div>
+      <select id="secSel" aria-label="Jump to section"></select>
+    </div>
+    <div id="text"></div>
+    <div class="secnav">
+      <button class="btn ghost" id="prevSec">‹ Previous</button>
+      <button class="btn ghost" id="nextSec">Next ›</button>
+    </div>
+  </section>
+</main>
+
+<footer id="player">
+  <div class="prog">
+    <span id="pct">0%</span>
+    <input type="range" id="scrub" min="0" max="0" value="0" aria-label="Position in book">
+    <span id="left"></span>
+  </div>
+  <div class="ctrls">
+    <button class="cb" id="backPara" title="Back one paragraph"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+    <button class="cb" id="backSent" title="Back one sentence (←)"><svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.3 0 6 2.7 6 6s-2.7 6-6 6-6-2.7-6-6H4c0 4.4 3.6 8 8 8s8-3.6 8-8-3.6-8-8-8z"/></svg></button>
+    <button class="cb" id="playBtn" title="Play / pause (space)"></button>
+    <button class="cb" id="fwdSent" title="Forward one sentence (→)"><svg viewBox="0 0 24 24"><path d="M12 5V1l5 5-5 5V7c-3.3 0-6 2.7-6 6s2.7 6 6 6 6-2.7 6-6h2c0 4.4-3.6 8-8 8s-8-3.6-8-8 3.6-8 8-8z"/></svg></button>
+    <button class="cb" id="fwdPara" title="Forward one paragraph"><svg viewBox="0 0 24 24"><path d="m6 18 8.5-6L6 6zM16 6h2v12h-2z"/></svg></button>
+    <span style="width:10px"></span>
+    <button class="cb" id="bmBtn" title="Bookmark this spot"><svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg></button>
+    <button class="cb" id="exBtn" title="Excerpt the current sentence"><svg viewBox="0 0 24 24"><path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"/></svg></button>
+  </div>
+  <div class="opts">
+    <label>Speed <input type="range" id="rate" min="0.6" max="2" step="0.05" value="1"> <b id="rateVal">1.0×</b></label>
+    <select id="voiceSel" aria-label="Voice"></select>
+  </div>
+</footer>
+
+<div id="selbar"><button id="selAdd">✂ Add selection to excerpts</button></div>
+<div id="scrim"></div>
+<aside id="panel" aria-hidden="true">
+  <div class="ptabs">
+    <button class="ptab" data-tab="ex">Excerpts</button>
+    <button class="ptab" data-tab="bm">Bookmarks</button>
+    <button class="ptab" data-tab="set">Settings</button>
+    <div style="flex:1"></div>
+    <button class="x" id="closePanel" aria-label="Close">✕</button>
+  </div>
+  <div class="pbody" id="pbody"></div>
+</aside>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ICON_PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+
+/* ---------- storage helpers (never fatal) ---------- */
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k){ try { localStorage.removeItem(k); } catch {} }
+};
+let dbp = null;
+function db(){
+  if (dbp) return dbp;
+  dbp = new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('readaloud', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('books', { keyPath: 'id' });
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+  return dbp;
+}
+async function idbPut(book){ try { const d = await db(); await new Promise((res, rej) => { const t = d.transaction('books','readwrite'); t.objectStore('books').put(book); t.oncomplete = res; t.onerror = () => rej(t.error); }); return true; } catch { return false; } }
+async function idbGet(id){ try { const d = await db(); return await new Promise((res, rej) => { const r = d.transaction('books').objectStore('books').get(id); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); } catch { return null; } }
+async function idbDel(id){ try { const d = await db(); await new Promise(res => { const t = d.transaction('books','readwrite'); t.objectStore('books').delete(id); t.oncomplete = res; t.onerror = res; }); } catch {} }
+
+/* ---------- toast ---------- */
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2200); }
+
+/* ---------- prefs ---------- */
+const prefs = Object.assign({ theme: 'sepia', fs: 20, rate: 1, voice: '' }, LS.get('ra:prefs', {}));
+function applyPrefs(){
+  document.body.dataset.theme = prefs.theme;
+  document.documentElement.style.setProperty('--fs', prefs.fs + 'px');
+  $('#rate').value = prefs.rate; $('#rateVal').textContent = Number(prefs.rate).toFixed(1) + '×';
+}
+function savePrefs(){ LS.set('ra:prefs', prefs); }
+applyPrefs();
+
+/* ---------- text utils ---------- */
+const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('en', { granularity: 'sentence' }) : null;
+function clean(t){ return t.replace(/­/g, '').replace(/[ \t ]+/g, ' ').replace(/\s*\n\s*/g, ' ').trim(); }
+function splitLong(s){
+  if (s.length <= 260) return [s];
+  const parts = s.split(/(?<=[,;:—–])\s+/);
+  const out = []; let cur = '';
+  for (const p of parts){
+    if (cur && (cur + ' ' + p).length > 220){ out.push(cur); cur = p; }
+    else cur = cur ? cur + ' ' + p : p;
+  }
+  if (cur) out.push(cur);
+  // hard wrap anything still huge
+  return out.flatMap(x => {
+    if (x.length <= 400) return [x];
+    const w = x.split(' '), r = []; let c = '';
+    for (const word of w){ if ((c + ' ' + word).length > 300 && c){ r.push(c); c = word; } else c = c ? c + ' ' + word : word; }
+    if (c) r.push(c); return r;
+  });
+}
+function sentences(text){
+  text = clean(text);
+  if (!text) return [];
+  let arr;
+  if (segmenter) arr = Array.from(segmenter.segment(text), x => x.segment.trim());
+  else arr = (text.match(/[^.!?…]+[.!?…]+["'”’)\]]*|[^.!?…]+$/g) || [text]).map(s => s.trim());
+  // merge tiny fragments like "Mr." or "1." into the next sentence
+  const merged = [];
+  for (const s of arr.filter(Boolean)){
+    if (merged.length && /^(?:Mr|Mrs|Ms|Dr|St|Prof|Sr|Jr|vs|etc|No|p|pp|e\.g|i\.e)\.$/i.test(merged[merged.length - 1].split(' ').pop())) merged[merged.length - 1] += ' ' + s;
+    else merged.push(s);
+  }
+  return merged.flatMap(splitLong);
+}
+function hashId(s){ let h = 2166136261; for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return 'b' + (h >>> 0).toString(36); }
+
+/* ---------- PDF parsing ---------- */
+async function parsePdf(buf, name, onProg){
+  if (!window.pdfjsLib) throw new Error('The PDF reader did not load. Check your connection and reload the page.');
+  try { pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch {}
+  const pdf = await pdfjsLib.getDocument({ data: buf, isEvalSupported: false }).promise;
+  let title = name.replace(/\.pdf$/i, '');
+  try { const md = await pdf.getMetadata(); const t = md && md.info && md.info.Title; if (t && t.trim() && !/^untitled|^microsoft word/i.test(t.trim())) title = t.trim(); } catch {}
+  const sections = []; let total = 0;
+  for (let p = 1; p <= pdf.numPages; p++){
+    onProg && onProg(`Reading page ${p} of ${pdf.numPages}…`);
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    // build lines
+    const lines = []; let cur = '', curY = null, lastX2 = null;
+    for (const it of tc.items){
+      if (!('str' in it)) continue;
+      const y = it.transform[5], x = it.transform[4];
+      if (curY !== null && Math.abs(y - curY) > 2 && cur.trim()){ lines.push({ t: cur.trim(), y: curY }); cur = ''; lastX2 = null; }
+      if (cur && lastX2 !== null && x - lastX2 > 1 && !cur.endsWith(' ') && !it.str.startsWith(' ')) cur += ' ';
+      cur += it.str; curY = y; lastX2 = x + (it.width || 0);
+      if (it.hasEOL){ if (cur.trim()) lines.push({ t: cur.trim(), y: curY }); cur = ''; lastX2 = null; curY = null; }
+    }
+    if (cur.trim()) lines.push({ t: cur.trim(), y: curY });
+    const L = lines.filter(l => !/^\s*(?:\d{1,4}|page \d+( of \d+)?)\s*$/i.test(l.t));
+    if (!L.length) continue;
+    // paragraph grouping
+    const gaps = []; for (let i = 1; i < L.length; i++){ const g = Math.abs(L[i-1].y - L[i].y); if (g > 0 && g < 60) gaps.push(g); }
+    gaps.sort((a, b) => a - b);
+    const med = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 14;
+    const maxLen = Math.max(...L.map(l => l.t.length));
+    const paras = []; let buf2 = '';
+    L.forEach((l, i) => {
+      if (i > 0){
+        const prev = L[i-1], gap = Math.abs(prev.y - l.y);
+        const brk = gap > med * 1.45 || (prev.t.length < maxLen * 0.7 && /[.!?:"”’)]$/.test(prev.t));
+        if (brk){ if (buf2.trim()) paras.push(buf2); buf2 = l.t; return; }
+        if (/[A-Za-z]-$/.test(buf2) && /^[a-z]/.test(l.t)) buf2 = buf2.slice(0, -1) + l.t;
+        else buf2 += ' ' + l.t;
+      } else buf2 = l.t;
+    });
+    if (buf2.trim()) paras.push(buf2);
+    const ps = paras.map(sentences).filter(a => a.length);
+    if (ps.length){ sections.push({ title: 'Page ' + p, paras: ps }); total += ps.length; }
+  }
+  if (!total) throw new Error('This PDF has no readable text — it is probably scanned images of pages. Try a version with selectable text.');
+  return { title, type: 'pdf', sections };
+}
+
+/* ---------- EPUB parsing ---------- */
+function resolvePath(base, href){
+  href = href.split('#')[0];
+  try { href = decodeURIComponent(href); } catch {}
+  const parts = (href.startsWith('/') ? href.slice(1) : base + href).split('/');
+  const out = [];
+  for (const p of parts){ if (p === '..') out.pop(); else if (p !== '.' && p !== '') out.push(p); }
+  return out.join('/');
+}
+function parseXml(str, type){
+  let doc = new DOMParser().parseFromString(str, type || 'application/xml');
+  if (doc.getElementsByTagName('parsererror').length){ doc = new DOMParser().parseFromString(str, 'text/html'); }
+  return doc;
+}
+const BLOCK = new Set(['p','h1','h2','h3','h4','h5','h6','li','blockquote','pre','div','section','article','td','th','dt','dd','figcaption','aside','header','footer','tr']);
+async function parseEpub(buf, name, onProg){
+  if (!window.JSZip) throw new Error('The EPUB reader did not load. Check your connection and reload the page.');
+  const zip = await JSZip.loadAsync(buf);
+  const getText = p => { const f = zip.file(p) || zip.file(Object.keys(zip.files).find(k => k.toLowerCase() === p.toLowerCase()) || ''); return f ? f.async('string') : Promise.resolve(null); };
+  const cont = await getText('META-INF/container.xml');
+  if (!cont) throw new Error('This EPUB looks damaged (no container file).');
+  const rf = parseXml(cont).getElementsByTagName('rootfile')[0];
+  const opfPath = rf && rf.getAttribute('full-path');
+  if (!opfPath) throw new Error('This EPUB looks damaged (no package file).');
+  const base = opfPath.includes('/') ? opfPath.slice(0, opfPath.lastIndexOf('/') + 1) : '';
+  const opf = parseXml(await getText(opfPath));
+  if (opf.getElementsByTagName('encryption').length || zip.file('META-INF/encryption.xml')){
+    // may be DRM; we'll still try, and explain if empty
+  }
+  let title = name.replace(/\.epub$/i, '');
+  const tEl = opf.getElementsByTagNameNS('*', 'title')[0] || opf.getElementsByTagName('dc:title')[0];
+  if (tEl && tEl.textContent.trim()) title = tEl.textContent.trim();
+  const manifest = {};
+  for (const it of opf.getElementsByTagName('item')) manifest[it.getAttribute('id')] = { href: resolvePath(base, it.getAttribute('href') || ''), type: it.getAttribute('media-type') || '', props: it.getAttribute('properties') || '' };
+  const spine = Array.from(opf.getElementsByTagName('itemref')).map(r => manifest[r.getAttribute('idref')]).filter(Boolean);
+  // TOC labels
+  const labels = {};
+  try {
+    const nav = Object.values(manifest).find(m => /\bnav\b/.test(m.props));
+    if (nav){
+      const nd = parseXml(await getText(nav.href), 'application/xhtml+xml');
+      const nb = nav.href.includes('/') ? nav.href.slice(0, nav.href.lastIndexOf('/') + 1) : '';
+      for (const a of nd.getElementsByTagName('a')){ const h = a.getAttribute('href'); if (!h) continue; const p = resolvePath(nb, h); if (!labels[p] && a.textContent.trim()) labels[p] = clean(a.textContent); }
+    }
+    const ncxId = opf.getElementsByTagName('spine')[0]?.getAttribute('toc');
+    const ncx = (ncxId && manifest[ncxId]) || Object.values(manifest).find(m => m.type === 'application/x-dtbncx+xml');
+    if (ncx){
+      const xd = parseXml(await getText(ncx.href));
+      const nb = ncx.href.includes('/') ? ncx.href.slice(0, ncx.href.lastIndexOf('/') + 1) : '';
+      for (const np of xd.getElementsByTagName('navPoint')){
+        const c = np.getElementsByTagName('content')[0], t = np.getElementsByTagName('text')[0];
+        if (c && t){ const p = resolvePath(nb, c.getAttribute('src') || ''); if (!labels[p] && t.textContent.trim()) labels[p] = clean(t.textContent); }
+      }
+    }
+  } catch {}
+  const sections = [];
+  for (let i = 0; i < spine.length; i++){
+    const item = spine[i];
+    onProg && onProg(`Reading section ${i + 1} of ${spine.length}…`);
+    if (!/html|xml/.test(item.type) && !/\.x?html?$/i.test(item.href)) continue;
+    const raw = await getText(item.href); if (!raw) continue;
+    const doc = parseXml(raw, 'application/xhtml+xml');
+    const body = doc.getElementsByTagName('body')[0] || doc.documentElement;
+    for (const bad of Array.from(body.querySelectorAll('script,style,nav[epub\\:type="toc"]'))) bad.remove();
+    const blocks = [];
+    const all = body.getElementsByTagName('*');
+    for (const el of all){
+      const tag = (el.localName || '').toLowerCase();
+      if (!BLOCK.has(tag)) continue;
+      let hasBlockChild = false;
+      for (const d of el.getElementsByTagName('*')){ if (BLOCK.has((d.localName || '').toLowerCase())){ hasBlockChild = true; break; } }
+      if (hasBlockChild) continue;
+      const t = clean(el.textContent || '');
+      if (t) blocks.push({ t, h: /^h[1-6]$/.test(tag) });
+    }
+    if (!blocks.length){ const t = clean(body.textContent || ''); if (t) blocks.push({ t, h: false }); }
+    const paras = blocks.map(b => sentences(b.t)).filter(a => a.length);
+    if (!paras.length) continue;
+    const head = blocks.find(b => b.h);
+    const label = labels[item.href] || (head ? head.t.slice(0, 80) : '') || ('Section ' + (sections.length + 1));
+    sections.push({ title: label, paras });
+  }
+  if (!sections.length) throw new Error('No readable text found. If this EPUB was bought from a store, it may be copy-protected (DRM), which browsers can’t open.');
+  return { title, type: 'epub', sections };
+}
+
+/* ---------- app state ---------- */
+let book = null;       // {id,title,type,sections}
+let flat = [];         // [{s, p, t}] s=section index, p=global paragraph index
+let secStart = [];     // first flat index per section
+let paraStart = [];    // first flat index per global paragraph
+let pos = 0, playing = false, token = 0, renderedSec = -1;
+let voices = [];
+
+function buildFlat(){
+  flat = []; secStart = []; paraStart = [];
+  let pg = 0;
+  book.sections.forEach((sec, si) => {
+    secStart[si] = flat.length;
+    sec.paras.forEach(para => { paraStart[pg] = flat.length; para.forEach(t => flat.push({ s: si, p: pg, t })); pg++; });
+  });
+}
+
+/* ---------- library ---------- */
+function library(){ return LS.get('ra:library', []); }
+function saveLibrary(l){ LS.set('ra:library', l); }
+function touchLibrary(){
+  if (!book) return;
+  const l = library().filter(b => b.id !== book.id);
+  l.unshift({ id: book.id, title: book.title, type: book.type, count: flat.length, pos, updated: Date.now() });
+  saveLibrary(l.slice(0, 30));
+}
+function renderHome(){
+  const l = library();
+  const w = $('#recentWrap');
+  if (!l.length){ w.innerHTML = ''; return; }
+  w.innerHTML = '<h2 class="sec">Continue listening</h2>' + l.map(b => {
+    const pct = b.count ? Math.round((b.pos / Math.max(1, b.count - 1)) * 100) : 0;
+    return `<div class="book" data-id="${esc(b.id)}"><div class="info"><div class="t">${esc(b.title)}</div><div class="m">${b.type.toUpperCase()} · ${pct}% · ${new Date(b.updated).toLocaleDateString()}</div><div class="bar"><i style="width:${pct}%"></i></div></div><button class="btn" data-open="${esc(b.id)}">Resume</button><button class="x" data-del="${esc(b.id)}" title="Remove">✕</button></div>`;
+  }).join('');
+}
+$('#recentWrap').addEventListener('click', async e => {
+  const o = e.target.closest('[data-open]'), d = e.target.closest('[data-del]');
+  if (o){
+    const b = await idbGet(o.dataset.open);
+    if (b) openBook(b); else { setStatus('This book isn’t stored in this browser anymore. Upload the same file again and your place will be restored.', true); }
+  } else if (d){
+    const id = d.dataset.del;
+    saveLibrary(library().filter(b => b.id !== id)); LS.del('ra:pos:' + id); LS.del('ra:bm:' + id); idbDel(id); renderHome();
+  }
+});
+
+/* ---------- loading files ---------- */
+function setStatus(msg, err){ const s = $('#status'); s.textContent = msg || ''; s.classList.toggle('err', !!err); }
+async function handleFile(file){
+  if (!file) return;
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  setStatus('Opening ' + file.name + '…');
+  try {
+    const buf = await file.arrayBuffer();
+    let parsed;
+    if (ext === 'pdf' || file.type === 'application/pdf') parsed = await parsePdf(buf, file.name, setStatus);
+    else if (ext === 'epub' || file.type === 'application/epub+zip') parsed = await parseEpub(buf, file.name, setStatus);
+    else throw new Error('Please choose a .pdf or .epub file.');
+    parsed.id = hashId(file.name + '|' + file.size);
+    setStatus('');
+    const stored = await idbPut(parsed);
+    if (!stored) toast('Couldn’t store the book in this browser — your place will still be saved.');
+    openBook(parsed);
+  } catch (err){
+    console.error(err);
+    setStatus(err && err.message ? err.message : 'Couldn’t open that file.', true);
+  } finally { $('#file').value = ''; }
+}
+$('#file').addEventListener('change', e => handleFile(e.target.files[0]));
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+
+/* ---------- reader ---------- */
+function openBook(b){
+  stop();
+  book = b; buildFlat();
+  pos = Math.min(Math.max(0, LS.get('ra:pos:' + b.id, 0)), flat.length - 1);
+  $('#bookTitle').textContent = b.title;
+  $('#secSel').innerHTML = b.sections.map((s, i) => `<option value="${i}">${esc(s.title.length > 60 ? s.title.slice(0, 57) + '…' : s.title)}</option>`).join('');
+  $('#scrub').max = Math.max(0, flat.length - 1);
+  $('#home').style.display = 'none'; $('#reader').style.display = 'block'; $('#player').style.display = 'block'; $('#openBm').style.display = '';
+  renderedSec = -1; highlight(true);
+  touchLibrary();
+  if (pos > 0) toast('Picked up where you left off');
+}
+function goHome(){
+  stop(); touchLibrary();
+  book = null; $('#reader').style.display = 'none'; $('#player').style.display = 'none'; $('#openBm').style.display = 'none'; $('#home').style.display = 'block';
+  renderHome(); $('#main').scrollTop = 0;
+}
+$('#homeLink').addEventListener('click', goHome);
+
+function renderSection(si){
+  const sec = book.sections[si];
+  const bms = new Set(bookmarks().map(b => b.i));
+  let i = secStart[si], html = '';
+  const isPdf = book.type === 'pdf';
+  if (isPdf) html += `<h3>${esc(sec.title)}</h3>`;
+  sec.paras.forEach(para => {
+    html += '<p>' + para.map(t => { const c = 's' + (bms.has(i) ? ' bm' : ''); const out = `<span class="${c}" data-i="${i}">${esc(t)}</span> `; i++; return out; }).join('') + '</p>';
+  });
+  $('#text').innerHTML = html;
+  renderedSec = si;
+  $('#secSel').value = si;
+  $('#prevSec').style.visibility = si > 0 ? 'visible' : 'hidden';
+  $('#nextSec').style.visibility = si < book.sections.length - 1 ? 'visible' : 'hidden';
+}
+function highlight(scroll){
+  if (!book || !flat.length) return;
+  const cur = flat[pos];
+  if (cur.s !== renderedSec){ renderSection(cur.s); $('#main').scrollTop = 0; }
+  const prev = $('#text .s.on'); if (prev) prev.classList.remove('on');
+  const el = $(`#text .s[data-i="${pos}"]`);
+  if (el){ el.classList.add('on'); if (scroll) el.scrollIntoView({ block: 'center', behavior: playing ? 'smooth' : 'auto' }); }
+  $('#scrub').value = pos;
+  const pct = Math.round((pos / Math.max(1, flat.length - 1)) * 100);
+  $('#pct').textContent = pct + '%';
+  const wordsLeft = flat.slice(pos).reduce((n, x) => n + x.t.split(' ').length, 0);
+  const mins = Math.round(wordsLeft / (165 * prefs.rate));
+  $('#left').textContent = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m left` : `${mins}m left`;
+}
+let saveT;
+function savePos(){
+  if (!book) return;
+  LS.set('ra:pos:' + book.id, pos);
+  clearTimeout(saveT); saveT = setTimeout(touchLibrary, 1500);
+}
+$('#text').addEventListener('click', e => {
+  const s = e.target.closest('.s'); if (!s) return;
+  const sel = window.getSelection(); if (sel && String(sel).trim()) return;
+  goTo(+s.dataset.i);
+});
+$('#secSel').addEventListener('change', e => goTo(secStart[+e.target.value]));
+$('#prevSec').addEventListener('click', () => { const s = flat[pos].s; if (s > 0) goTo(secStart[s - 1]); });
+$('#nextSec').addEventListener('click', () => { const s = flat[pos].s; if (s < book.sections.length - 1) goTo(secStart[s + 1]); });
+$('#scrub').addEventListener('input', e => { const was = playing; if (was) pauseSpeech(); pos = +e.target.value; highlight(true); savePos(); if (was) play(); });
+
+/* ---------- speech ---------- */
+const synth = window.speechSynthesis;
+function loadVoices(){
+  if (!synth) return;
+  voices = synth.getVoices().slice().sort((a, b) => {
+    const ae = /^en/i.test(a.lang) ? 0 : 1, be = /^en/i.test(b.lang) ? 0 : 1;
+    return ae - be || a.lang.localeCompare(b.lang) || a.name.localeCompare(b.name);
+  });
+  const sel = $('#voiceSel');
+  sel.innerHTML = '<option value="">Default voice</option>' + voices.map(v => `<option value="${esc(v.name)}">${esc(v.name.replace(/^(Microsoft|Google) /, ''))} (${esc(v.lang)})</option>`).join('');
+  if (prefs.voice && voices.some(v => v.name === prefs.voice)) sel.value = prefs.voice;
+}
+if (synth){ loadVoices(); synth.onvoiceschanged = loadVoices; }
+$('#voiceSel').addEventListener('change', e => { prefs.voice = e.target.value; savePrefs(); if (playing) restart(); });
+$('#rate').addEventListener('input', e => { prefs.rate = +e.target.value; $('#rateVal').textContent = prefs.rate.toFixed(1) + '×'; savePrefs(); });
+$('#rate').addEventListener('change', () => { if (playing) restart(); highlight(false); });
+
+function setPlayIcon(){ $('#playBtn').innerHTML = playing ? ICON_PAUSE : ICON_PLAY; }
+setPlayIcon();
+function speakCurrent(){
+  if (!synth){ toast('This browser can’t read aloud. Try Chrome, Edge or Safari.'); playing = false; setPlayIcon(); return; }
+  const my = ++token;
+  synth.cancel();
+  highlight(true); savePos();
+  setTimeout(() => {
+    if (my !== token || !playing) return;
+    const u = new SpeechSynthesisUtterance(flat[pos].t);
+    u.rate = prefs.rate;
+    const v = voices.find(v => v.name === prefs.voice); if (v){ u.voice = v; u.lang = v.lang; }
+    u.onend = () => {
+      if (my !== token || !playing) return;
+      if (pos < flat.length - 1){ pos++; speakCurrent(); }
+      else { playing = false; setPlayIcon(); toast('End of book'); }
+    };
+    u.onerror = e => {
+      if (my !== token || !playing) return;
+      if (e.error === 'interrupted' || e.error === 'canceled') return;
+      if (e.error === 'not-allowed'){ playing = false; setPlayIcon(); toast('Tap play to start reading'); return; }
+      if (pos < flat.length - 1){ pos++; speakCurrent(); }
+    };
+    synth.speak(u);
+    if (synth.paused) synth.resume();
+  }, 60);
+}
+function play(){ if (!book) return; playing = true; setPlayIcon(); speakCurrent(); }
+function pauseSpeech(){ playing = false; token++; if (synth) synth.cancel(); setPlayIcon(); savePos(); touchLibrary(); }
+function stop(){ pauseSpeech(); }
+function restart(){ if (playing) speakCurrent(); }
+function goTo(i){
+  pos = Math.max(0, Math.min(flat.length - 1, i));
+  if (playing) speakCurrent(); else { highlight(true); savePos(); }
+}
+$('#playBtn').addEventListener('click', () => playing ? pauseSpeech() : play());
+$('#backSent').addEventListener('click', () => goTo(pos - 1));
+$('#fwdSent').addEventListener('click', () => goTo(pos + 1));
+$('#backPara').addEventListener('click', () => {
+  const p = flat[pos].p, start = paraStart[p];
+  goTo(pos - start >= 1 ? start : (p > 0 ? paraStart[p - 1] : 0));
+});
+$('#fwdPara').addEventListener('click', () => { const p = flat[pos].p; if (p + 1 < paraStart.length) goTo(paraStart[p + 1]); });
+// Chrome sometimes stalls long sessions; nudge it.
+setInterval(() => { if (playing && synth && synth.paused) synth.resume(); }, 5000);
+document.addEventListener('keydown', e => {
+  if (!book || e.target.matches('input,select,textarea')) return;
+  if (e.code === 'Space'){ e.preventDefault(); playing ? pauseSpeech() : play(); }
+  else if (e.key === 'ArrowLeft'){ e.preventDefault(); goTo(pos - 1); }
+  else if (e.key === 'ArrowRight'){ e.preventDefault(); goTo(pos + 1); }
+});
+window.addEventListener('pagehide', () => { if (book){ savePos(); touchLibrary(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && book){ savePos(); touchLibrary(); } });
+
+/* ---------- bookmarks ---------- */
+function bookmarks(){ return book ? LS.get('ra:bm:' + book.id, []) : []; }
+$('#bmBtn').addEventListener('click', () => {
+  if (!book) return;
+  const l = bookmarks();
+  if (l.some(b => b.i === pos)){ toast('Already bookmarked'); return; }
+  l.push({ i: pos, sec: book.sections[flat[pos].s].title, t: flat[pos].t.slice(0, 140), at: Date.now() });
+  l.sort((a, b) => a.i - b.i);
+  LS.set('ra:bm:' + book.id, l);
+  const el = $(`#text .s[data-i="${pos}"]`); if (el) el.classList.add('bm');
+  toast('Bookmarked');
+  if (panelTab === 'bm' && $('#panel').classList.contains('open')) renderPanel();
+});
+
+/* ---------- excerpts ---------- */
+function excerpts(){ return LS.get('ra:excerpts', []); }
+function setExcerpts(l){ LS.set('ra:excerpts', l); $('#exCount').textContent = l.length; }
+$('#exCount').textContent = excerpts().length;
+function addExcerpt(text){
+  text = clean(text); if (!text || !book) return;
+  const l = excerpts();
+  l.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), book: book.title, bookId: book.id, sec: book.sections[flat[pos].s].title, i: pos, text, at: Date.now() });
+  setExcerpts(l);
+  toast('Added to excerpts');
+  if (panelTab === 'ex' && $('#panel').classList.contains('open')) renderPanel();
+}
+$('#exBtn').addEventListener('click', () => { if (book) addExcerpt(flat[pos].t); });
+
+// selection → excerpt
+function selectionInText(){
+  const sel = window.getSelection();
+  if (!sel || sel.isCollapsed) return '';
+  const t = String(sel).trim();
+  if (!t) return '';
+  const n = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement);
+  return n && n.closest && n.closest('#text') ? t : '';
+}
+let selT;
+document.addEventListener('selectionchange', () => {
+  clearTimeout(selT);
+  selT = setTimeout(() => { $('#selbar').style.display = selectionInText() ? 'block' : 'none'; }, 150);
+});
+$('#selAdd').addEventListener('mousedown', e => e.preventDefault());
+$('#selAdd').addEventListener('click', () => {
+  const t = selectionInText(); if (!t) return;
+  addExcerpt(t);
+  window.getSelection().removeAllRanges(); $('#selbar').style.display = 'none';
+});
+
+async function copyExcerpts(list){
+  if (!list.length){ toast('No excerpts yet'); return; }
+  const groups = {};
+  list.forEach(x => (groups[x.book] = groups[x.book] || []).push(x));
+  let html = '', txt = '';
+  for (const [title, xs] of Object.entries(groups)){
+    html += `<h2>${esc(title)}</h2>`; txt += title + '\n\n';
+    xs.forEach(x => {
+      html += `<blockquote><p>“${esc(x.text)}”</p></blockquote><p><em>— ${esc(title)}, ${esc(x.sec)}</em></p>`;
+      txt += `“${x.text}”\n— ${title}, ${x.sec}\n\n`;
+    });
+  }
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }), 'text/plain': new Blob([txt.trim()], { type: 'text/plain' }) })]);
+    } else throw 0;
+    toast('Copied — paste into your Google Doc');
+  } catch {
+    try { await navigator.clipboard.writeText(txt.trim()); toast('Copied — paste into your Google Doc'); }
+    catch { showCopyFallback(txt.trim()); }
+  }
+}
+function showCopyFallback(txt){
+  $('#pbody').insertAdjacentHTML('afterbegin', `<div class="ex"><div class="note" style="margin-bottom:6px">Your browser blocked copying. Select this text and copy it:</div><textarea style="width:100%;height:160px;font:inherit;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px">${esc(txt)}</textarea></div>`);
+  const ta = $('#pbody textarea'); ta.focus(); ta.select();
+}
+
+/* ---------- panel ---------- */
+let panelTab = 'ex';
+function openPanel(tab){ panelTab = tab; $('#panel').classList.add('open'); $('#panel').setAttribute('aria-hidden', 'false'); $('#scrim').style.display = 'block'; renderPanel(); }
+function closePanel(){ $('#panel').classList.remove('open'); $('#panel').setAttribute('aria-hidden', 'true'); $('#scrim').style.display = 'none'; }
+$('#openEx').addEventListener('click', () => openPanel('ex'));
+$('#openBm').addEventListener('click', () => openPanel('bm'));
+$('#openSet').addEventListener('click', () => openPanel('set'));
+$('#closePanel').addEventListener('click', closePanel);
+$('#scrim').addEventListener('click', closePanel);
+document.querySelectorAll('.ptab').forEach(b => b.addEventListener('click', () => { panelTab = b.dataset.tab; renderPanel(); }));
+
+function renderPanel(){
+  document.querySelectorAll('.ptab').forEach(b => b.classList.toggle('on', b.dataset.tab === panelTab));
+  const pb = $('#pbody');
+  if (panelTab === 'ex'){
+    const all = excerpts();
+    const scope = book ? all.filter(x => x.bookId === book.id) : all;
+    pb.innerHTML = `
+      <div class="pactions">
+        <button class="btn" id="copyAll">Copy ${book ? 'this book’s' : 'all'} excerpts</button>
+        <a class="btn ghost" href="https://docs.new" target="_blank" rel="noopener">Open a new Google Doc ↗</a>
+        ${book && all.length > scope.length ? '<button class="btn ghost" id="copyEvery">Copy every book</button>' : ''}
+      </div>
+      <p class="note" style="margin:-4px 0 12px">Copy, then paste into any Google Doc. Quotes keep their formatting and source line.</p>
+      ${scope.length ? scope.slice().reverse().map(x => `<div class="ex${book && x.bookId === book.id ? ' clickable' : ''}" data-go="${x.i}" data-book="${esc(x.bookId)}"><q>${esc(x.text)}</q><div class="src"><span>${esc(book ? x.sec : x.book + ' · ' + x.sec)}</span><button data-copy="${x.id}">Copy</button><button data-rm="${x.id}">Delete</button></div></div>`).join('')
+        : '<div class="empty">No excerpts yet.<br>While listening, tap the quote button to save the sentence being read, or select any text and tap “Add selection to excerpts.”</div>'}
+      ${scope.length ? '<div style="text-align:center;margin-top:10px"><button class="btn ghost" id="clearEx">Clear these excerpts</button></div>' : ''}`;
+    $('#copyAll') && ($('#copyAll').onclick = () => copyExcerpts(scope));
+    $('#copyEvery') && ($('#copyEvery').onclick = () => copyExcerpts(all));
+    $('#clearEx') && ($('#clearEx').onclick = e => {
+      const b = e.currentTarget;
+      if (b.dataset.sure){ const ids = new Set(scope.map(x => x.id)); setExcerpts(all.filter(x => !ids.has(x.id))); renderPanel(); }
+      else { b.dataset.sure = '1'; b.textContent = 'Tap again to clear'; }
+    });
+    pb.onclick = e => {
+      const rm = e.target.closest('[data-rm]'), cp = e.target.closest('[data-copy]'), go = e.target.closest('.ex.clickable');
+      if (rm){ setExcerpts(excerpts().filter(x => x.id !== rm.dataset.rm)); renderPanel(); return; }
+      if (cp){ const x = excerpts().find(x => x.id === cp.dataset.copy); if (x) copyExcerpts([x]); return; }
+      if (go && book && go.dataset.book === book.id){ closePanel(); goTo(+go.dataset.go); }
+    };
+  } else if (panelTab === 'bm'){
+    const l = bookmarks();
+    pb.innerHTML = !book ? '<div class="empty">Open a book to see its bookmarks.</div>' :
+      (l.length ? l.map(b => `<div class="ex clickable" data-go="${b.i}"><q>${esc(b.t)}${b.t.length >= 140 ? '…' : ''}</q><div class="src"><span>${esc(b.sec)} · ${Math.round(b.i / Math.max(1, flat.length - 1) * 100)}%</span><button data-rmb="${b.i}">Delete</button></div></div>`).join('')
+        : '<div class="empty">No bookmarks yet.<br>Tap the bookmark button in the player to mark the sentence being read. Your current place is always saved automatically.</div>');
+    pb.onclick = e => {
+      const rm = e.target.closest('[data-rmb]'), go = e.target.closest('.ex.clickable');
+      if (rm){ LS.set('ra:bm:' + book.id, bookmarks().filter(b => b.i !== +rm.dataset.rmb)); const el = $(`#text .s[data-i="${rm.dataset.rmb}"]`); if (el) el.classList.remove('bm'); renderPanel(); return; }
+      if (go){ closePanel(); goTo(+go.dataset.go); }
+    };
+  } else {
+    pb.onclick = null;
+    pb.innerHTML = `
+      <div class="setrow"><span>Theme</span><div class="seg" id="themeSeg">${['sepia','light','dark'].map(t => `<button data-v="${t}" class="${prefs.theme === t ? 'on' : ''}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div></div>
+      <div class="setrow"><span>Text size</span><div class="seg"><button id="fsDown">A−</button><button id="fsVal" disabled>${prefs.fs}</button><button id="fsUp">A+</button></div></div>
+      <p class="note" style="margin-top:16px">Voices come from your device and browser. Edge and Chrome usually have the most natural-sounding ones (look for “Natural” or “Google” voices). On iPhone, you can download better voices in Settings → Accessibility → Spoken Content → Voices.</p>
+      <p class="note">Shortcuts on a keyboard: Space plays and pauses, ← and → move one sentence.</p>
+      <p class="note">Everything stays in this browser on this device: your books, your place, bookmarks and excerpts.</p>`;
+    $('#themeSeg').onclick = e => { const b = e.target.closest('[data-v]'); if (!b) return; prefs.theme = b.dataset.v; savePrefs(); applyPrefs(); renderPanel(); };
+    $('#fsDown').onclick = () => { prefs.fs = Math.max(14, prefs.fs - 1); savePrefs(); applyPrefs(); $('#fsVal').textContent = prefs.fs; };
+    $('#fsUp').onclick = () => { prefs.fs = Math.min(32, prefs.fs + 1); savePrefs(); applyPrefs(); $('#fsVal').textContent = prefs.fs; };
+  }
+}
+
+renderHome();
+
+
+})();
+</script>
+</body>
+</html>
